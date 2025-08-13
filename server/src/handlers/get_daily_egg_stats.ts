@@ -1,8 +1,28 @@
+import { db } from '../db';
+import { eggRecordsTable } from '../db/schema';
 import { type DailyEggStats } from '../schema';
+import { sql } from 'drizzle-orm';
 
 export const getDailyEggStats = async (): Promise<DailyEggStats[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching daily egg counts showing total eggs laid per day.
-    // Should return statistics aggregated by date showing how many eggs were laid each day.
-    return [];
+  try {
+    // Aggregate egg counts by laid_date
+    const results = await db
+      .select({
+        date: eggRecordsTable.laid_date,
+        total_eggs: sql<number>`count(*)::int`
+      })
+      .from(eggRecordsTable)
+      .groupBy(eggRecordsTable.laid_date)
+      .orderBy(eggRecordsTable.laid_date)
+      .execute();
+
+    // Convert date objects to string format for display
+    return results.map(result => ({
+      date: result.date, // date column already returns string format
+      total_eggs: result.total_eggs
+    }));
+  } catch (error) {
+    console.error('Failed to get daily egg stats:', error);
+    throw error;
+  }
 };
